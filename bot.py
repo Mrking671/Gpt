@@ -1,6 +1,6 @@
 from flask import Flask, request
 from telegram import Update, Bot
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
 import requests
 import logging
 import os
@@ -13,15 +13,16 @@ app = Flask(__name__)
 
 # Retrieve token and API URL from environment variables
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/"
 API_URL = "https://ashlynn.darkhacker7301.workers.dev/?question={}&state=Zenith"
 
+# Initialize bot and application
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
+application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-async def start(update: Update, context: CallbackContext) -> None:
+async def start(update: Update, context) -> None:
     await update.message.reply_text('Welcome! Send me any question and I\'ll fetch an answer for you.')
 
-async def handle_message(update: Update, context: CallbackContext) -> None:
+async def handle_message(update: Update, context) -> None:
     user_message = update.message.text
     response = await get_answer_from_api(user_message)
     await update.message.reply_text(response)
@@ -32,7 +33,7 @@ async def get_answer_from_api(question: str) -> str:
         response = requests.get(url)
         response.raise_for_status()  # Check for HTTP errors
         data = response.json()
-
+        
         answer = data.get('answer', 'Sorry, I didn\'t understand that.')
         return answer
 
@@ -43,7 +44,7 @@ async def get_answer_from_api(question: str) -> str:
 @app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
 def telegram_webhook():
     update = Update.de_json(request.get_json(force=True), bot)
-    dispatcher.process_update(update)
+    application.update_queue.put_nowait(update)
     return "ok"
 
 @app.route("/")
@@ -51,13 +52,12 @@ def index():
     return "Bot is running."
 
 def main():
-    global dispatcher
-    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-    dispatcher = application.dispatcher
-
     # Register handlers
-    dispatcher.add_handler(CommandHandler('start', start))
-    dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(CommandHandler('start', start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    # Set up webhook
+    bot.set_webhook(url=f"https://gpt-1-kpao.onrender.com/{TELEGRAM_BOT_TOKEN}")
 
     # Start Flask app
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
