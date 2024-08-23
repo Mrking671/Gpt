@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 import requests
 import logging
 import os
@@ -11,22 +11,22 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 API_URL = "https://ashlynn.darkhacker7301.workers.dev/?question={}&state=Zenith"
 
-def start(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text('Welcome! Send me any question and I\'ll fetch an answer for you.')
+async def start(update: Update, context: CallbackContext) -> None:
+    await update.message.reply_text('Welcome! Send me any question and I\'ll fetch an answer for you.')
 
-def handle_message(update: Update, context: CallbackContext) -> None:
+async def handle_message(update: Update, context: CallbackContext) -> None:
     user_message = update.message.text
-    response = get_answer_from_api(user_message)
-    update.message.reply_text(response)
+    response = await get_answer_from_api(user_message)
+    await update.message.reply_text(response)
 
-def get_answer_from_api(question: str) -> str:
+async def get_answer_from_api(question: str) -> str:
     try:
         # Replace spaces with %20 to handle URL encoding
         url = API_URL.format(requests.utils.quote(question))
         response = requests.get(url)
         response.raise_for_status()  # Check for HTTP errors
         data = response.json()
-        
+
         # Extract the answer from the API response
         answer = data.get('answer', 'Sorry, I didn\'t understand that.')
         return answer
@@ -36,16 +36,14 @@ def get_answer_from_api(question: str) -> str:
         return 'Sorry, I encountered an error while fetching the answer.'
 
 def main():
-    updater = Updater(TELEGRAM_BOT_TOKEN, use_context=True)
-    dispatcher = updater.dispatcher
+    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
     # Register handlers
-    dispatcher.add_handler(CommandHandler('start', start))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+    application.add_handler(CommandHandler('start', start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     # Start the Bot
-    updater.start_polling()
-    updater.idle()
+    application.run_polling()
 
 if __name__ == '__main__':
     main()
