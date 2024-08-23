@@ -5,7 +5,7 @@ import json
 
 app = Flask(__name__)
 
-TELEGRAM_BOT_TOKEN = os.environ.get("7258041551:AAF81cY7a2kV72OUJLV3rMybTSJrj0Fm-fc")
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 API_URL = "https://ashlynn.darkhacker7301.workers.dev/?question={question}&state=Zenith"
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/"
 
@@ -44,16 +44,21 @@ def telegram_webhook():
         chat_id = data["message"]["chat"]["id"]
         if "text" in data["message"]:
             text = data["message"]["text"]
+            print(f"Received message: {text}")  # Debug: log the received message
             if text == "/start":
                 send_message(chat_id, "Welcome! Send me any question and I'll fetch an answer for you.")
             else:
                 answer = get_answer_from_api(text)
                 send_message(chat_id, answer)
+    else:
+        print("No message found in the update.")  # Debug: log if no message is found
     return "ok"
 
 @app.route("/")
 def index():
+    print("Index page accessed.")  # Debug: log index page access
     return "Bot is running."
 
 if __name__ == "__main__":
+    print("Starting Flask app...")  # Debug: log when the app starts
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
