@@ -12,7 +12,9 @@ TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/"
 def get_answer_from_api(question):
     response = requests.get(API_URL.format(question=question))
     data = response.json()
-    return data.get("answer", "I'm sorry, I couldn't find an answer to your question.")
+    # Extract the 'answer' from the API response
+    answer = data.get("answer", "I'm sorry, I couldn't find an answer to your question.")
+    return answer
 
 def send_message(chat_id, text):
     url = TELEGRAM_API_URL + "sendMessage"
