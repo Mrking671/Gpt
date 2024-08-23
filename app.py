@@ -5,16 +5,21 @@ import json
 
 app = Flask(__name__)
 
-TELEGRAM_BOT_TOKEN = os.environ.get("7258041551:AAF81cY7a2kV72OUJLV3rMybTSJrj0Fm-fc")
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 API_URL = "https://ashlynn.darkhacker7301.workers.dev/?question={question}&state=Zenith"
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/"
 
 def get_answer_from_api(question):
-    response = requests.get(API_URL.format(question=question))
-    data = response.json()
-    # Extract the 'answer' from the API response
-    answer = data.get("answer", "I'm sorry, I couldn't find an answer to your question.")
-    return answer
+    try:
+        response = requests.get(API_URL.format(question=question))
+        response.raise_for_status()  # Check if request was successful
+        data = response.json()
+        print(f"API Response: {data}")  # Debug: print the full API response
+        answer = data.get("answer", "I'm sorry, I couldn't find an answer to your question.")
+        return answer
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching from API: {e}")  # Log any errors
+        return "Sorry, there was an error fetching the answer. Please try again later."
 
 def send_message(chat_id, text):
     url = TELEGRAM_API_URL + "sendMessage"
@@ -23,16 +28,27 @@ def send_message(chat_id, text):
         "text": text,
         "parse_mode": "HTML"
     }
-    requests.post(url, json=payload)
+    try:
+        response = requests.post(url, json=payload)
+        response.raise_for_status()  # Ensure the request was successful
+        print(f"Message sent: {text}")  # Debug: confirm the message was sent
+    except requests.exceptions.RequestException as e:
+        print(f"Error sending message to Telegram: {e}")  # Log any errors
 
 @app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
 def telegram_webhook():
     data = request.get_json()
-    if "message" in data and "text" in data["message"]:
+    print(f"Webhook received data: {data}")  # Debug: log incoming webhook data
+
+    if "message" in data:
         chat_id = data["message"]["chat"]["id"]
-        question = data["message"]["text"]
-        answer = get_answer_from_api(question)
-        send_message(chat_id, answer)
+        if "text" in data["message"]:
+            text = data["message"]["text"]
+            if text == "/start":
+                send_message(chat_id, "Welcome! Send me any question and I'll fetch an answer for you.")
+            else:
+                answer = get_answer_from_api(text)
+                send_message(chat_id, answer)
     return "ok"
 
 @app.route("/")
