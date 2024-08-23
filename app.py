@@ -5,7 +5,7 @@ import json
 
 app = Flask(__name__)
 
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+TELEGRAM_BOT_TOKEN = os.environ.get("7258041551:AAF81cY7a2kV72OUJLV3rMybTSJrj0Fm-fc")
 API_URL = "https://ashlynn.darkhacker7301.workers.dev/?question={question}&state=Zenith"
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/"
 
